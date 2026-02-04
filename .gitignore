@@ -1,0 +1,29 @@
+# Old secrets format (deprecated - now using SOPS)
+secrets.nix
+
+# SOPS age key (never commit private keys!)
+secrets/key.txt
+secrets/secrets.yaml.work
+
+# Nix build artifacts
+result
+result-*
+
+# SD card images
+*.img
+*.img.zst
+
+# Direnv
+.direnv/
+.envrc
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
