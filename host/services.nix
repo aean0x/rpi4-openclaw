@@ -23,10 +23,6 @@
           TERM = "xterm-256color";
         };
         environmentFiles = [ "/run/openclaw.env" ];
-        ports = [
-          "${toString settings.gatewayPort}:18789"
-          "${toString settings.bridgePort}:18790"
-        ];
         cmd = [
           "node"
           "dist/index.js"
@@ -36,7 +32,10 @@
           "--port"
           "18789"
         ];
-        extraOptions = [ "--init" ];
+        extraOptions = [
+          "--network=host"
+          "--init"
+        ];
         autoStart = true;
       };
 
@@ -49,9 +48,7 @@
           MODE = "native";
         };
         environmentFiles = [ "/run/signal.env" ];
-        ports = [
-          "${toString settings.signalPort}:8080"
-        ];
+        extraOptions = [ "--network=host" ];
         autoStart = true;
       };
     };

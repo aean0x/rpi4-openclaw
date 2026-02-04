@@ -123,6 +123,40 @@ in
       done
     '')
 
+    # OpenClaw CLI wrappers
+    (writeShellScriptBin "openclaw" ''
+      set -euo pipefail
+      sudo docker exec -it openclaw-gateway node dist/index.js "$@"
+    '')
+
+    (writeShellScriptBin "oc-onboard" ''
+      set -euo pipefail
+      sudo docker exec -it openclaw-gateway node dist/index.js onboard "$@"
+    '')
+
+    (writeShellScriptBin "oc-channels" ''
+      set -euo pipefail
+      sudo docker exec -it openclaw-gateway node dist/index.js channels "$@"
+    '')
+
+    (writeShellScriptBin "oc-status" ''
+      set -euo pipefail
+      sudo docker exec -it openclaw-gateway node dist/index.js status "$@"
+    '')
+
+    (writeShellScriptBin "oc-health" ''
+      set -euo pipefail
+      sudo docker exec -it openclaw-gateway node dist/index.js health "$@"
+    '')
+
+    (writeShellScriptBin "signal-link" ''
+      echo "Signal QR pairing link:"
+      echo "  http://$(hostname -I | awk '{print $1}'):8080/v1/qrcodelink?device_name=openclaw"
+      echo ""
+      echo "Open in browser, then scan with Signal app:"
+      echo "  Settings > Linked devices > +"
+    '')
+
     (writeShellScriptBin "help" ''
       echo "OpenClaw Gateway Management Commands:"
       echo ""
@@ -142,6 +176,14 @@ in
       echo "  logs [container] Tail container logs (default: openclaw-gateway)"
       echo "  journal [unit]   Tail system logs"
       echo "  help             Show this help"
+      echo ""
+      echo "OpenClaw CLI:"
+      echo "  openclaw <cmd>   Run any openclaw CLI command"
+      echo "  oc-onboard       Run onboarding wizard"
+      echo "  oc-channels      Manage channels (login, add, list)"
+      echo "  oc-status        Show openclaw status"
+      echo "  oc-health        Show openclaw health"
+      echo "  signal-link      Show Signal QR pairing URL"
       echo ""
       echo "Remote build (recommended):"
       echo "  ./deploy remote-switch   Build on workstation, switch immediately"
