@@ -39,7 +39,6 @@
         modules = [
           sops-nix.nixosModules.sops
 
-          ./host/devices.nix
           ./host/configuration.nix
           ./host/services.nix
 

@@ -1,15 +1,35 @@
-# Base system configuration for OpenClaw gateway
-# Handles: networking, SSH, users, journald, Nix settings, WiFi (optional via sops)
+# Base system configuration for OpenClaw gateway (Raspberry Pi 4)
+# Handles: hardware, networking, SSH, users, journald, Nix settings, WiFi (optional via sops)
 {
   config,
   lib,
   settings,
+  nixos-hardware,
+  nixpkgs,
   ...
 }:
 {
   imports = [
+    "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+    "${nixos-hardware}/raspberry-pi/4"
     ../secrets/sops.nix
     ./scripts.nix
+  ];
+
+  # ===================
+  # Hardware (RPi4)
+  # ===================
+  zramSwap = {
+    enable = true;
+    memoryPercent = 50;
+    algorithm = "zstd";
+  };
+
+  swapDevices = [
+    {
+      device = "/var/lib/swapfile";
+      size = 2048;
+    }
   ];
 
   # ===================

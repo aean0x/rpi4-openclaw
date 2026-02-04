@@ -14,8 +14,7 @@ NixOS configuration flake for Raspberry Pi 4 running OpenClaw gateway + Signal C
 ├── settings.nix           # Public config (IP, Hostname, Ports)
 ├── deploy                 # Master control script
 ├── host/
-│   ├── configuration.nix  # Base OS: Networking, Users, SSH
-│   ├── devices.nix        # Hardware config (RPi4 only)
+│   ├── configuration.nix  # Base OS + Hardware: RPi4, Networking, Users, SSH
 │   ├── services.nix       # Container definitions (openclaw-gateway, signal-cli)
 │   └── scripts.nix        # Shell scripts installed on host
 └── secrets/
