@@ -40,9 +40,10 @@ in
   enableWifi = false;
   wifiSsid = "MyWifiNetwork";
 
-  # OpenClaw service ports
+  # Service ports
   gatewayPort = 18789;
   bridgePort = 18790;
+  signalPort = 8080;
 
   # System
   stateVersion = "25.11";

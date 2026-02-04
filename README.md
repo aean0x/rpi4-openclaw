@@ -5,18 +5,61 @@ A NixOS configuration flake for running an OpenClaw AI gateway on a Raspberry Pi
 ## Features
 
 - **OpenClaw Gateway** (Docker) - AI-powered messaging gateway
+- **Signal CLI REST API** (Docker) - Signal messaging integration
 - **SOPS-encrypted secrets** - Gateway tokens and API keys encrypted at rest
 - **Unified Management** - `./deploy` wrapper for builds, deployments, and debugging
 
-## Prerequisites
+## Quick Start (Docker Only)
+
+If you just want to run OpenClaw in Docker without the full NixOS setup:
+
+```bash
+# Create directories
+mkdir -p ~/.openclaw/config ~/.openclaw/workspace ~/.signal-cli
+
+# Generate a gateway token
+export OPENCLAW_GATEWAY_TOKEN=$(openssl rand -hex 32)
+
+# Run OpenClaw gateway
+docker run -d --name openclaw-gateway \
+  -p 18789:18789 -p 18790:18790 \
+  -v ~/.openclaw/config:/home/node/.openclaw \
+  -v ~/.openclaw/workspace:/home/node/.openclaw/workspace \
+  -e HOME=/home/node \
+  -e OPENCLAW_GATEWAY_TOKEN=$OPENCLAW_GATEWAY_TOKEN \
+  -e CLAUDE_AI_SESSION_KEY=your-claude-key \
+  -e GEMINI_API_KEY=your-gemini-key \
+  -e GROK_API_KEY=your-grok-key \
+  --init --restart unless-stopped \
+  ghcr.io/openclaw/openclaw:latest \
+  node dist/index.js gateway --bind lan --port 18789
+
+# Run Signal CLI REST API (optional)
+docker run -d --name signal-cli \
+  -p 8080:8080 \
+  -v ~/.signal-cli:/home/.local/share/signal-cli \
+  -e MODE=native \
+  --restart unless-stopped \
+  bbernhard/signal-cli-rest-api:latest
+
+# Link Signal to your phone
+# Open http://localhost:8080/v1/qrcodelink?device_name=openclaw
+# Scan with Signal app: Settings > Linked devices > +
+
+# Test OpenClaw
+curl -H "Authorization: Bearer $OPENCLAW_GATEWAY_TOKEN" http://localhost:18789/health
+```
+
+## Full NixOS Setup (Raspberry Pi 4)
+
+### Prerequisites
 
 - Linux workstation with Nix installed (with flake support)
-- Git
-- SSH key pair
+- Git, SSH key pair
 - Raspberry Pi 4 (2GB+ RAM recommended)
 - MicroSD card (16GB+)
 
-## Initial Setup
+### Initial Setup
 
 1. **Clone the repository**
    ```bash
@@ -28,67 +71,47 @@ A NixOS configuration flake for running an OpenClaw AI gateway on a Raspberry Pi
    - `repoUrl`: Your fork (e.g. `"youruser/rpi4-openclaw"`)
    - `hostName`: Network hostname (default: `openclaw`)
    - `network`: Static IP configuration
-   - `gatewayPort` / `bridgePort`: OpenClaw service ports
 
 3. **Configure Secrets**
    ```bash
-   cd secrets
-   ./encrypt
+   cd secrets && ./encrypt
    ```
    Fill in:
-   - `user_hashedPassword` (generate with `mkpasswd -m SHA-512`)
-   - `openclaw_gateway_token` (generate with `openssl rand -hex 32`)
-   - `claude_session_key` (your Claude API session key)
+   - `user_hashedPassword` - generate with `mkpasswd -m SHA-512`
+   - `openclaw_gateway_token` - generate with `openssl rand -hex 32`
+   - `claude_session_key`, `gemini_key`, `grok_key` - your AI API keys
+   - `signal_phone_number` - international format (+1234567890)
 
-4. **Commit Changes**
+4. **Commit and build**
    ```bash
-   git add .
-   git commit -m "Initial config"
+   git add . && git commit -m "Initial config"
+   ./deploy build-sd
    ```
 
-## Build & Flash SD Image
+### First Boot
+
+1. Flash SD card, insert and power on
+2. Wait ~2 minutes for initialization
+3. SSH: `ssh user@openclaw.local`
+
+### Link Signal
 
 ```bash
-./deploy build-sd
+# On your workstation, open in browser:
+http://<device-ip>:8080/v1/qrcodelink?device_name=openclaw
+
+# Scan with Signal app: Settings > Linked devices > +
 ```
-
-Follow the prompts to flash directly, or use the output with `dd` / Etcher manually.
-
-## First Boot
-
-1. Insert SD card and power on
-2. Wait for initialization (~2 minutes)
-3. SSH into the device:
-   ```bash
-   ssh user@openclaw.local
-   ```
 
 ## Management
 
-Use the `./deploy` wrapper from your workstation:
-
 ```bash
-# Apply configuration changes (builds on workstation, deploys to device)
-./deploy remote-switch
-
-# Check logs
-./deploy logs
-
-# Check system health
-./deploy system-info
+./deploy remote-switch   # Apply config changes
+./deploy logs            # OpenClaw logs
+./deploy logs signal-cli # Signal logs
+./deploy system-info     # System health
+./deploy docker-ps       # List containers
 ```
-
-### Available Commands
-
-| Command | Description |
-| :--- | :--- |
-| `remote-switch` | Build on workstation, switch immediately |
-| `remote-boot` | Build on workstation, activate on reboot |
-| `logs [container]` | Tail container logs (default: openclaw-gateway) |
-| `system-info` | Overview of memory, disk, and generation |
-| `docker-ps` | List running containers |
-| `docker-stats` | Real-time CPU/RAM usage |
-| `cleanup` | Garbage collect old generations |
 
 ## Service Ports
 
@@ -96,37 +119,26 @@ Use the `./deploy` wrapper from your workstation:
 | :--- | :--- |
 | OpenClaw Gateway | `18789` |
 | OpenClaw Bridge | `18790` |
+| Signal CLI REST | `8080` |
 
 ## Project Structure
 
 ```
-├── flake.nix              # Entry point: Host configs & SD image outputs
-├── settings.nix           # Public configuration (IPs, Hostname, Ports)
-├── shell.nix              # Dev shell (sops, ssh, nix tools)
-├── deploy                 # Wrapper for SSH & Nix builds
-├── host/                  # NixOS configuration
-│   ├── configuration.nix  # Base OS (Network, Users, SSH)
-│   ├── devices.nix        # Hardware config (RPi4)
-│   ├── services.nix       # Docker container definitions
-│   └── scripts.nix        # Host management scripts
-└── secrets/               # SOPS-encrypted secrets
-    ├── secrets.yaml       # Encrypted data store
-    └── sops.nix           # Runtime decryption module
+├── flake.nix              # Entry point
+├── settings.nix           # Public config (IPs, Hostname, Ports)
+├── deploy                 # Management wrapper
+├── host/
+│   ├── configuration.nix  # Base OS
+│   ├── devices.nix        # Hardware (RPi4)
+│   ├── services.nix       # Docker containers
+│   └── scripts.nix        # Host scripts
+└── secrets/
+    ├── secrets.yaml       # Encrypted secrets
+    └── sops.nix           # Decryption config
 ```
-
-## OpenClaw Configuration
-
-After first boot, connect to the gateway:
-1. Access the gateway at `http://<device-ip>:18789`
-2. Use your configured `openclaw_gateway_token` for authentication
-3. Set up messaging channels via the CLI:
-   ```bash
-   ./deploy ssh
-   docker exec -it openclaw-gateway node dist/index.js channels login
-   ```
 
 ## Notes
 
-- **Memory**: RPi4 has 2-4GB RAM; the gateway runs comfortably with zram enabled
-- **Remote Building**: Always use `remote-*` commands to avoid OOM on the device
-- **Auto-upgrade**: System updates automatically every Sunday at 3 AM
+- **Memory**: RPi4 has 2-4GB RAM; services run comfortably with zram
+- **Remote Building**: Always use `remote-*` commands to avoid OOM
+- **Auto-upgrade**: System updates every Sunday at 3 AM
