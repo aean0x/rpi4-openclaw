@@ -123,30 +123,10 @@ in
       done
     '')
 
-    # OpenClaw CLI wrappers
+    # OpenClaw CLI wrapper (pipes through to container)
     (writeShellScriptBin "openclaw" ''
       set -euo pipefail
       sudo docker exec -it openclaw-gateway node dist/index.js "$@"
-    '')
-
-    (writeShellScriptBin "oc-onboard" ''
-      set -euo pipefail
-      sudo docker exec -it openclaw-gateway node dist/index.js onboard "$@"
-    '')
-
-    (writeShellScriptBin "oc-channels" ''
-      set -euo pipefail
-      sudo docker exec -it openclaw-gateway node dist/index.js channels "$@"
-    '')
-
-    (writeShellScriptBin "oc-status" ''
-      set -euo pipefail
-      sudo docker exec -it openclaw-gateway node dist/index.js status "$@"
-    '')
-
-    (writeShellScriptBin "oc-health" ''
-      set -euo pipefail
-      sudo docker exec -it openclaw-gateway node dist/index.js health "$@"
     '')
 
     (writeShellScriptBin "signal-link" ''
@@ -178,11 +158,7 @@ in
       echo "  help             Show this help"
       echo ""
       echo "OpenClaw CLI:"
-      echo "  openclaw <cmd>   Run any openclaw CLI command"
-      echo "  oc-onboard       Run onboarding wizard"
-      echo "  oc-channels      Manage channels (login, add, list)"
-      echo "  oc-status        Show openclaw status"
-      echo "  oc-health        Show openclaw health"
+      echo "  openclaw <cmd>   Run any openclaw CLI command (e.g. openclaw onboard)"
       echo "  signal-link      Show Signal QR pairing URL"
       echo ""
       echo "Remote build (recommended):"

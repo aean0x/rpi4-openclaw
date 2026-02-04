@@ -42,17 +42,8 @@ usage() {
     echo "  logs [container]     Tail container logs (default: openclaw-gateway)"
     echo "  journal [unit]       Tail system logs"
     echo ""
-    echo "OpenClaw CLI (runs inside container):"
-    echo "  onboard              Run openclaw onboarding wizard"
-    echo "  openclaw <cmd>       Run any openclaw CLI command"
-    echo "  channels <cmd>       Manage channels (login, add, list, etc)"
-    echo "  status               Show openclaw status"
-    echo "  health               Show openclaw health"
-    echo "  dashboard            Show dashboard URL"
-    echo ""
-    echo "Signal CLI:"
-    echo "  signal-link          Show QR code link URL for Signal pairing"
-    echo "  signal <cmd>         Run signal-cli-rest-api commands"
+    echo "OpenClaw CLI:"
+    echo "  openclaw <cmd>       Run any openclaw CLI command (e.g. openclaw onboard)"
     echo ""
     echo "Workstation remote-build:"
     echo "  remote-switch        Build on workstation and switch"
@@ -206,53 +197,9 @@ case "$CMD" in
         deploy_system "$ACTION"
         ;;
 
-    # OpenClaw CLI commands
-    onboard)
-        check_ssh
-        info "Running openclaw onboarding wizard..."
-        run_openclaw onboard "$@"
-        ;;
-
     openclaw)
         check_ssh
         run_openclaw "$@"
-        ;;
-
-    channels)
-        check_ssh
-        run_openclaw channels "$@"
-        ;;
-
-    status)
-        check_ssh
-        run_openclaw status "$@"
-        ;;
-
-    health)
-        check_ssh
-        run_openclaw health "$@"
-        ;;
-
-    dashboard)
-        check_ssh
-        echo "OpenClaw Dashboard: http://${IP}:18789/"
-        echo "Signal QR Link:     http://${IP}:8080/v1/qrcodelink?device_name=openclaw"
-        ;;
-
-    # Signal CLI commands
-    signal-link)
-        check_ssh
-        echo "Signal QR pairing link:"
-        echo "  http://${IP}:8080/v1/qrcodelink?device_name=openclaw"
-        echo ""
-        echo "Open in browser, then scan with Signal app:"
-        echo "  Settings > Linked devices > +"
-        ;;
-
-    signal)
-        check_ssh
-        ssh -t -o StrictHostKeyChecking=accept-new "$TARGET" \
-            "sudo docker exec -it signal-cli /bin/sh -c '$*'"
         ;;
 
     *)
