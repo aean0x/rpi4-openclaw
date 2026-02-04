@@ -44,6 +44,7 @@ in
   gatewayPort = 18789;
   bridgePort = 18790;
   signalPort = 8080;
+  composioPort = 8000;
 
   # System
   stateVersion = "25.11";

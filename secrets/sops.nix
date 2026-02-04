@@ -1,4 +1,4 @@
-# SOPS secrets configuration for OpenClaw
+# SOPS secrets configuration for OpenClaw + Composio
 { ... }:
 {
   sops = {
@@ -8,9 +8,8 @@
     secrets = {
       user_hashedPassword = { };
       openclaw_gateway_token = { };
-      claude_session_key = { };
-      gemini_key = { };
-      grok_key = { };
+      composio_encryption_key = { };
+      composio_jwt_secret = { };
       signal_phone_number = { };
       wifi_psk = { };
     };

@@ -9,6 +9,10 @@ let
   containers = {
     openclaw = "node dist/index.js";
     signal = "/bin/sh -c";
+    composio-core = "/bin/sh -c";
+    composio-worker = "/bin/sh -c";
+    composio-redis = "/bin/sh -c";
+    composio-postgres = "psql -U composio";
   };
 
   # Generate wrapper script for each container
@@ -163,8 +167,10 @@ in
       echo "  help             Show this help"
       echo ""
       echo "Container exec (runs command inside container):"
-      echo "  openclaw <cmd>   e.g. openclaw onboard, openclaw status"
-      echo "  signal <cmd>     e.g. signal curl localhost:8080/v1/about"
+      echo "  openclaw <cmd>       e.g. openclaw onboard, openclaw status"
+      echo "  signal <cmd>         e.g. signal curl localhost:8080/v1/about"
+      echo "  composio-core <cmd>  e.g. composio-core env"
+      echo "  composio-postgres    Opens psql shell"
       echo ""
       echo "Remote build (recommended):"
       echo "  ./deploy remote-switch   Build on workstation, switch immediately"
