@@ -4,9 +4,28 @@
 let
   flakeRef = "github:${settings.repoUrl}#${settings.hostName}";
   logFile = "$HOME/.rebuild-log";
+
+  # Container configs: name -> default entrypoint
+  containers = {
+    openclaw = "node dist/index.js";
+    signal = "/bin/sh -c";
+  };
+
+  # Generate wrapper script for each container
+  mkContainerExec = name: entrypoint: pkgs.writeShellScriptBin name ''
+    set -euo pipefail
+    if [[ $# -eq 0 ]]; then
+      exec sudo docker exec -it ${name} ${entrypoint} --help 2>/dev/null || \
+        sudo docker exec -it ${name} /bin/sh
+    else
+      exec sudo docker exec -it ${name} ${entrypoint} "$@"
+    fi
+  '';
+
+  containerScripts = pkgs.lib.mapAttrsToList mkContainerExec containers;
 in
 {
-  environment.systemPackages = with pkgs; [
+  environment.systemPackages = with pkgs; containerScripts ++ [
     (writeShellScriptBin "switch" ''
       set -euo pipefail
       echo "=== Switch started at $(date) ===" | tee "${logFile}"
@@ -97,7 +116,7 @@ in
 
     (writeShellScriptBin "logs" ''
       set -euo pipefail
-      container="''${1:-openclaw-gateway}"
+      container="''${1:-openclaw}"
       shift 2>/dev/null || true
       sudo docker logs "$container" "$@"
     '')
@@ -123,20 +142,6 @@ in
       done
     '')
 
-    # OpenClaw CLI wrapper (pipes through to container)
-    (writeShellScriptBin "openclaw" ''
-      set -euo pipefail
-      sudo docker exec -it openclaw-gateway node dist/index.js "$@"
-    '')
-
-    (writeShellScriptBin "signal-link" ''
-      echo "Signal QR pairing link:"
-      echo "  http://$(hostname -I | awk '{print $1}'):8080/v1/qrcodelink?device_name=openclaw"
-      echo ""
-      echo "Open in browser, then scan with Signal app:"
-      echo "  Settings > Linked devices > +"
-    '')
-
     (writeShellScriptBin "help" ''
       echo "OpenClaw Gateway Management Commands:"
       echo ""
@@ -153,13 +158,13 @@ in
       echo "Troubleshooting:"
       echo "  docker-ps        List containers"
       echo "  docker-stats     One-shot resource snapshot"
-      echo "  logs [container] Tail container logs (default: openclaw-gateway)"
+      echo "  logs [container] Tail container logs (default: openclaw)"
       echo "  journal [unit]   Tail system logs"
       echo "  help             Show this help"
       echo ""
-      echo "OpenClaw CLI:"
-      echo "  openclaw <cmd>   Run any openclaw CLI command (e.g. openclaw onboard)"
-      echo "  signal-link      Show Signal QR pairing URL"
+      echo "Container exec (runs command inside container):"
+      echo "  openclaw <cmd>   e.g. openclaw onboard, openclaw status"
+      echo "  signal <cmd>     e.g. signal curl localhost:8080/v1/about"
       echo ""
       echo "Remote build (recommended):"
       echo "  ./deploy remote-switch   Build on workstation, switch immediately"

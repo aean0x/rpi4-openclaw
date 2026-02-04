@@ -18,6 +18,12 @@ info() { echo -e "${GREEN}==>${NC} $*"; }
 warn() { echo -e "${YELLOW}==> WARNING:${NC} $*"; }
 error() { echo -e "${RED}==> ERROR:${NC} $*" >&2; }
 
+# Container name -> entrypoint mapping
+declare -A CONTAINERS=(
+    [openclaw]="node dist/index.js"
+    [signal]="/bin/sh -c"
+)
+
 usage() {
     echo "Usage: $0 <command> [args]"
     echo ""
@@ -39,11 +45,12 @@ usage() {
     echo "Troubleshooting:"
     echo "  docker-ps            List containers"
     echo "  docker-stats         One-shot resource snapshot"
-    echo "  logs [container]     Tail container logs (default: openclaw-gateway)"
+    echo "  logs [container]     Tail container logs (default: openclaw)"
     echo "  journal [unit]       Tail system logs"
     echo ""
-    echo "OpenClaw CLI:"
-    echo "  openclaw <cmd>       Run any openclaw CLI command (e.g. openclaw onboard)"
+    echo "Container exec (runs command inside container):"
+    echo "  openclaw <cmd>       e.g. openclaw onboard, openclaw status"
+    echo "  signal <cmd>         e.g. signal curl localhost:8080/v1/about"
     echo ""
     echo "Workstation remote-build:"
     echo "  remote-switch        Build on workstation and switch"
@@ -154,11 +161,27 @@ build_sd_image() {
     echo "  zstdcat result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=4M status=progress"
 }
 
-# Run openclaw CLI command inside the container
-run_openclaw() {
-    ssh -t -o StrictHostKeyChecking=accept-new "$TARGET" \
-        "sudo docker exec -it openclaw-gateway node dist/index.js $*"
+# Run command inside a container via SSH
+run_container() {
+    local container="$1"
+    local entrypoint="$2"
+    shift 2
+
+    if [[ $# -eq 0 ]]; then
+        ssh -t -o StrictHostKeyChecking=accept-new "$TARGET" \
+            "sudo docker exec -it ${container} ${entrypoint} --help 2>/dev/null || sudo docker exec -it ${container} /bin/sh"
+    else
+        ssh -t -o StrictHostKeyChecking=accept-new "$TARGET" \
+            "sudo docker exec -it ${container} ${entrypoint} $*"
+    fi
 }
+
+# Check if command is a container name
+if [[ -v "CONTAINERS[$CMD]" ]]; then
+    check_ssh
+    run_container "$CMD" "${CONTAINERS[$CMD]}" "$@"
+    exit 0
+fi
 
 case "$CMD" in
     -h|--help)
@@ -195,11 +218,6 @@ case "$CMD" in
 
         build_system
         deploy_system "$ACTION"
-        ;;
-
-    openclaw)
-        check_ssh
-        run_openclaw "$@"
         ;;
 
     *)

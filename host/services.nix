@@ -12,7 +12,7 @@
   virtualisation.oci-containers = {
     backend = "docker";
     containers = {
-      openclaw-gateway = {
+      openclaw = {
         image = "ghcr.io/openclaw/openclaw:latest";
         volumes = [
           "/var/lib/openclaw/config:/home/node/.openclaw"
@@ -39,7 +39,7 @@
         autoStart = true;
       };
 
-      signal-cli = {
+      signal = {
         image = "bbernhard/signal-cli-rest-api:latest";
         volumes = [
           "/var/lib/signal-cli:/home/.local/share/signal-cli"
@@ -84,12 +84,12 @@
 
   systemd.services.restart-services = {
     script = ''
-      ${config.virtualisation.docker.package}/bin/docker restart openclaw-gateway signal-cli || true
+      ${config.virtualisation.docker.package}/bin/docker restart openclaw signal || true
     '';
     serviceConfig.Type = "oneshot";
   };
 
-  systemd.services.docker-openclaw-gateway.preStart = ''
+  systemd.services.docker-openclaw.preStart = ''
     mkdir -p /var/lib/openclaw/config /var/lib/openclaw/workspace
     TOKEN=$(cat ${config.sops.secrets.openclaw_gateway_token.path} 2>/dev/null || echo "")
     CLAUDE_KEY=$(cat ${config.sops.secrets.claude_session_key.path} 2>/dev/null || echo "")
@@ -104,7 +104,7 @@
     chmod 600 /run/openclaw.env
   '';
 
-  systemd.services.docker-signal-cli.preStart = ''
+  systemd.services.docker-signal.preStart = ''
     mkdir -p /var/lib/signal-cli
     PHONE=$(cat ${config.sops.secrets.signal_phone_number.path} 2>/dev/null || echo "")
     {
